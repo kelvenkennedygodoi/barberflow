@@ -1,0 +1,32 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}{{ titulo }} | BarberFlow{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{% url 'disponibilidade_profissional' profissional.pk %}">← Voltar para disponibilidade</a>
+<div class="page-heading compact">
+    <div>
+        <p class="eyebrow">{{ profissional.nome_exibicao }}</p>
+        <h1>{{ titulo }}</h1>
+        <p>{{ subtitulo }}</p>
+    </div>
+</div>
+
+<section class="form-card">
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+    <form method="post" class="form-stack" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="field{% if field.field.widget.input_type == 'checkbox' %} field-checkbox{% endif %}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+            </div>
+        {% endfor %}
+        <div class="form-actions">
+            <a class="btn btn-secondary" href="{% url 'disponibilidade_profissional' profissional.pk %}">Cancelar</a>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

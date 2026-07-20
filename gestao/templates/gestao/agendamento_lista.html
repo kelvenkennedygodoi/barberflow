@@ -1,0 +1,52 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Agenda | BarberFlow{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">Operação</p>
+        <h1>Agenda</h1>
+        <p>Visualize os próximos atendimentos da equipe.</p>
+    </div>
+    <div class="heading-actions">
+        <a class="btn btn-secondary" href="{% url 'agenda_visual' %}">Agenda visual</a>
+        {% if user.pode_gerenciar %}
+            <a class="btn btn-primary" href="{% url 'agendamento_criar' %}">Novo agendamento</a>
+        {% endif %}
+    </div>
+</div>
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Data</th><th>Cliente</th><th>Profissional</th><th>Serviço</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                {% for agendamento in agendamentos %}
+                    <tr>
+                        <td><strong>{{ agendamento.inicio|date:"d/m/Y" }}</strong><small class="table-detail">{{ agendamento.inicio|date:"H:i" }}–{{ agendamento.fim|date:"H:i" }}</small></td>
+                        <td>{{ agendamento.cliente.nome }}{% if agendamento.origem == 'ONLINE' %}<small class="table-detail">Agendado on-line</small>{% endif %}</td>
+                        <td>{{ agendamento.profissional.nome_exibicao }}</td>
+                        <td>{{ agendamento.servico.nome }}</td>
+                        <td>R$ {{ agendamento.preco_cobrado|floatformat:2 }}</td>
+                        <td><span class="badge badge-{{ agendamento.status|lower }}">{{ agendamento.get_status_display }}</span></td>
+                        <td class="row-actions">
+                            {% if user.pode_gerenciar %}
+                                <a class="text-link" href="{% url 'agendamento_editar' agendamento.pk %}">Editar</a>
+                                {% if agendamento.status != 'CANCELADO' %}
+                                    <form method="post" action="{% url 'agendamento_cancelar' agendamento.pk %}">
+                                        {% csrf_token %}<button class="link-danger" type="submit">Cancelar</button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="empty-state" colspan="7">Nenhum agendamento cadastrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% include "gestao/paginacao.html" %}
+{% endblock %}

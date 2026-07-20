@@ -1,0 +1,33 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Entrar | BarberFlow{% endblock %}
+
+{% block auth_content %}
+<section class="login-card">
+    <div class="login-heading">
+        <span class="brand-mark brand-mark-large">BF</span>
+        <div>
+            <h1>Bem-vindo</h1>
+            <p>Acesse a gestão da sua barbearia.</p>
+        </div>
+    </div>
+
+    {% if form.errors %}
+        <div class="form-errors">Usuário ou senha inválidos.</div>
+    {% endif %}
+
+    <form method="post" class="form-stack">
+        {% csrf_token %}
+        <div class="field">
+            <label for="{{ form.username.id_for_label }}">Usuário</label>
+            {{ form.username }}
+        </div>
+        <div class="field">
+            <label for="{{ form.password.id_for_label }}">Senha</label>
+            {{ form.password }}
+        </div>
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        <button class="btn btn-primary btn-block" type="submit">Entrar</button>
+    </form>
+</section>
+{% endblock %}

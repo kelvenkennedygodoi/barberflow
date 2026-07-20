@@ -1,0 +1,19 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}{{ titulo }} | BarberFlow{% endblock %}
+
+{% block content %}
+<section class="delete-card">
+    <span class="delete-icon">!</span>
+    <p class="eyebrow">Confirmação</p>
+    <h1>{{ titulo }}</h1>
+    <p>Você está prestes a remover:</p>
+    <strong>{{ descricao }}</strong>
+    <p class="delete-warning">Os horários disponíveis para os clientes serão recalculados imediatamente.</p>
+    <form method="post" class="form-actions">
+        {% csrf_token %}
+        <a class="btn btn-secondary" href="{{ voltar_href }}">Cancelar</a>
+        <button class="btn btn-danger" type="submit">Confirmar exclusão</button>
+    </form>
+</section>
+{% endblock %}

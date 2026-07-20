@@ -1,0 +1,161 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Agenda visual | BarberFlow{% endblock %}
+
+{% block content %}
+<div class="page-heading agenda-page-heading">
+    <div>
+        <p class="eyebrow">Planejamento</p>
+        <h1>Agenda visual</h1>
+        <p>Organize a rotina da equipe e acompanhe cada atendimento.</p>
+    </div>
+    <div class="heading-actions">
+        <a class="btn btn-secondary" href="{% url 'agendamento_lista' %}">Ver em lista</a>
+        {% if user.pode_gerenciar %}
+            <a class="btn btn-primary" href="{% url 'agendamento_criar' %}">Novo agendamento</a>
+        {% endif %}
+    </div>
+</div>
+
+<section class="agenda-controls">
+    <form method="get" class="agenda-filters">
+        <input type="hidden" name="modo" value="{{ modo }}">
+        <div class="field">
+            <label for="agenda-data">Data de referência</label>
+            <input class="form-control" id="agenda-data" type="date" name="data" value="{{ data_selecionada|date:'Y-m-d' }}">
+        </div>
+        {% if user.pode_gerenciar %}
+            <div class="field">
+                <label for="agenda-profissional">Profissional</label>
+                <select class="form-control" id="agenda-profissional" name="profissional">
+                    <option value="">Todos os barbeiros</option>
+                    {% for profissional in profissionais %}
+                        <option value="{{ profissional.pk }}"{% if profissional_selecionado.pk == profissional.pk %} selected{% endif %}>{{ profissional.nome_exibicao }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+        <div class="field">
+            <label for="agenda-status">Situação</label>
+            <select class="form-control" id="agenda-status" name="status">
+                <option value="">Todas as situações</option>
+                {% for valor, rotulo in status_opcoes %}
+                    <option value="{{ valor }}"{% if status_selecionado == valor %} selected{% endif %}>{{ rotulo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="agenda-filter-actions">
+            <button class="btn btn-primary" type="submit">Aplicar filtros</button>
+            <a class="text-link" href="{{ url_limpar_filtros }}">Limpar</a>
+        </div>
+    </form>
+</section>
+
+<section class="agenda-navigation">
+    <div class="agenda-period-nav">
+        <a class="icon-button" href="{{ url_anterior }}" aria-label="Período anterior">‹</a>
+        <a class="btn btn-secondary" href="{{ url_hoje }}">Hoje</a>
+        <a class="icon-button" href="{{ url_proximo }}" aria-label="Próximo período">›</a>
+    </div>
+    <div class="agenda-period-title">
+        {% if modo == 'dia' %}
+            <strong>{{ data_selecionada|date:"l, d \d\e F" }}</strong>
+        {% else %}
+            <strong>{{ inicio_semana|date:"d/m" }} a {{ fim_semana|date:"d/m/Y" }}</strong>
+        {% endif %}
+        <span>{{ total_agendamentos }} atendimento{{ total_agendamentos|pluralize }}</span>
+    </div>
+    <div class="view-switch" aria-label="Tipo de visualização">
+        <a class="{% if modo == 'dia' %}active{% endif %}" href="{{ url_modo_dia }}">Dia</a>
+        <a class="{% if modo == 'semana' %}active{% endif %}" href="{{ url_modo_semana }}">Semana</a>
+    </div>
+</section>
+
+<div class="status-legend" aria-label="Legenda de situações">
+    {% for valor, rotulo in status_opcoes %}
+        <span><i class="legend-dot status-color-{{ valor|lower }}"></i>{{ rotulo }}</span>
+    {% endfor %}
+</div>
+
+{% if modo == 'dia' %}
+    {% if colunas %}
+        <section class="agenda-day-scroll">
+            <div class="agenda-day-canvas" style="--column-count: {{ colunas|length }}; --agenda-min-width: {{ largura_minima_agenda }}px; --grid-height: {{ altura_grade }}px; --hour-step: {{ passo_hora }}px;">
+                <div class="agenda-grid-header">
+                    <div class="agenda-time-corner">Horário</div>
+                    {% for coluna in colunas %}
+                        <div class="professional-heading">
+                            <span class="professional-avatar">{{ coluna.profissional.nome_exibicao|first|upper }}</span>
+                            <div>
+                                <strong>{{ coluna.profissional.nome_exibicao }}</strong>
+                                <small>{{ coluna.cards|length }} atendimento{{ coluna.cards|length|pluralize }}</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="agenda-grid-body">
+                    <div class="agenda-time-axis">
+                        {% for marcador in marcadores_hora %}
+                            <span style="--top: {{ marcador.top }}px">{{ marcador.rotulo }}</span>
+                        {% endfor %}
+                    </div>
+                    {% for coluna in colunas %}
+                        <div class="professional-day-column">
+                            {% for card in coluna.cards %}
+                                {% if user.pode_gerenciar %}
+                                    <a class="appointment-card status-card-{{ card.agendamento.status|lower }}" style="--top: {{ card.top }}px; --height: {{ card.altura }}px" href="{% url 'agendamento_editar' card.agendamento.pk %}">
+                                        <strong>{{ card.agendamento.inicio|date:"H:i" }} · {{ card.agendamento.cliente.nome }}</strong>
+                                        <span>{{ card.agendamento.servico.nome }}</span>
+                                        {% if card.agendamento.origem == 'ONLINE' %}<small>On-line</small>{% endif %}
+                                    </a>
+                                {% else %}
+                                    <article class="appointment-card status-card-{{ card.agendamento.status|lower }}" style="--top: {{ card.top }}px; --height: {{ card.altura }}px">
+                                        <strong>{{ card.agendamento.inicio|date:"H:i" }} · {{ card.agendamento.cliente.nome }}</strong>
+                                        <span>{{ card.agendamento.servico.nome }}</span>
+                                    </article>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    {% else %}
+        <section class="agenda-empty">
+            <h2>Nenhum barbeiro ativo</h2>
+            <p>Cadastre ou ative um barbeiro para começar a organizar a agenda.</p>
+        </section>
+    {% endif %}
+{% else %}
+    <section class="agenda-week-scroll">
+        <div class="agenda-week-grid">
+            {% for dia in dias_semana %}
+                <article class="week-day{% if dia.hoje %} today{% endif %}">
+                    <header>
+                        <span>{{ dia.nome }}</span>
+                        <strong>{{ dia.data|date:"d" }}</strong>
+                    </header>
+                    <div class="week-day-events">
+                        {% for agendamento in dia.agendamentos %}
+                            {% if user.pode_gerenciar %}
+                                <a class="week-appointment status-card-{{ agendamento.status|lower }}" href="{% url 'agendamento_editar' agendamento.pk %}">
+                                    <strong>{{ agendamento.inicio|date:"H:i" }} · {{ agendamento.cliente.nome }}</strong>
+                                    <span>{{ agendamento.servico.nome }}</span>
+                                    <small>{{ agendamento.profissional.nome_exibicao }}{% if agendamento.origem == 'ONLINE' %} · On-line{% endif %}</small>
+                                </a>
+                            {% else %}
+                                <article class="week-appointment status-card-{{ agendamento.status|lower }}">
+                                    <strong>{{ agendamento.inicio|date:"H:i" }} · {{ agendamento.cliente.nome }}</strong>
+                                    <span>{{ agendamento.servico.nome }}</span>
+                                </article>
+                            {% endif %}
+                        {% empty %}
+                            <p class="week-empty">Livre</p>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+{% endblock %}

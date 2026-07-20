@@ -1,0 +1,37 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Serviços | BarberFlow{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">Catálogo</p>
+        <h1>Serviços</h1>
+        <p>Configure duração e preço de cada atendimento.</p>
+    </div>
+    {% if user.pode_gerenciar %}
+        <a class="btn btn-primary" href="{% url 'servico_criar' %}">Novo serviço</a>
+    {% endif %}
+</div>
+
+<section class="panel">
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Serviço</th><th>Duração</th><th>Preço</th><th>Situação</th><th></th></tr></thead>
+            <tbody>
+                {% for servico in servicos %}
+                    <tr>
+                        <td><strong>{{ servico.nome }}</strong><small class="table-detail">{{ servico.descricao|default:"Sem descrição" }}</small></td>
+                        <td>{{ servico.duracao_minutos }} min</td>
+                        <td>R$ {{ servico.preco|floatformat:2 }}</td>
+                        <td>{% if servico.ativo %}<span class="badge badge-confirmado">Ativo</span>{% else %}<span class="badge badge-cancelado">Inativo</span>{% endif %}</td>
+                        <td>{% if user.pode_gerenciar %}<a class="text-link" href="{% url 'servico_editar' servico.pk %}">Editar</a>{% endif %}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="empty-state" colspan="5">Nenhum serviço cadastrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

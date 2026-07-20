@@ -1,0 +1,11 @@
+.venv/
+.testdeps/
+__pycache__/
+*.py[cod]
+db.sqlite3
+.env
+staticfiles/
+.coverage
+.pytest_cache/
+*.zip
+backups/

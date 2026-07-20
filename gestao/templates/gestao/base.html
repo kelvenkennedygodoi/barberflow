@@ -1,0 +1,65 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}BarberFlow{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="{% url 'dashboard' %}">
+            <span class="brand-mark">BF</span>
+            <span>BarberFlow</span>
+        </a>
+        {% if user.is_authenticated %}
+            <div class="topbar-user">
+                <span>
+                    <strong>{{ user.nome_exibicao }}</strong>
+                    <small>{{ user.get_papel_display }}</small>
+                </span>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="btn btn-ghost" type="submit">Sair</button>
+                </form>
+            </div>
+        {% endif %}
+    </header>
+
+    {% if user.is_authenticated %}
+        <div class="app-shell">
+            <nav class="sidebar" aria-label="Navegação principal">
+                <p class="sidebar-label">{{ user.barbearia.nome }}</p>
+                {% if user.papel == 'BARBEIRO' and not user.is_superuser %}
+                    <a href="{% url 'meu_dia' %}">Meu dia</a>
+                    <a href="{% url 'agenda_visual' %}">Minha agenda</a>
+                {% else %}
+                    <a href="{% url 'dashboard' %}">Visão geral</a>
+                    <a href="{% url 'agenda_visual' %}">Agenda</a>
+                    <a href="{% url 'agendamento_lista' %}">Agendamentos</a>
+                    <a href="{% url 'cliente_lista' %}">Clientes</a>
+                    <a href="{% url 'servico_lista' %}">Serviços</a>
+                {% endif %}
+                {% if user.papel == 'PROPRIETARIO' or user.is_superuser %}
+                    <a href="{% url 'financeiro' %}">Financeiro</a>
+                    <a href="{% url 'equipe_lista' %}">Equipe e horários</a>
+                    <a href="{% url 'configuracao_publica' %}">Página de agendamento</a>
+                {% endif %}
+                {% if user.is_staff %}
+                    <a href="{% url 'admin:index' %}">Administração</a>
+                {% endif %}
+            </nav>
+            <main class="content">
+                {% include "gestao/mensagens.html" %}
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    {% else %}
+        <main class="auth-content">
+            {% include "gestao/mensagens.html" %}
+            {% block auth_content %}{% endblock %}
+        </main>
+    {% endif %}
+</body>
+</html>

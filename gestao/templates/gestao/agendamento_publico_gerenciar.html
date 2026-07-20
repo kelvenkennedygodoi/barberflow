@@ -1,0 +1,10 @@
+{% load static %}<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Minha reserva | {{ barbearia.nome }}</title><link rel="stylesheet" href="{% static 'css/app.css' %}"></head>
+<body class="public-page"><main class="confirmation-shell"><section class="confirmation-card manage-booking-card">
+    {% if messages %}<div class="messages" aria-live="polite">{% for message in messages %}<div class="message message-{{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+    <p class="eyebrow">Minha reserva</p><h1>{{ agendamento.get_status_display }}</h1>
+    <p>Código <strong>{{ agendamento.token_publico|stringformat:"s"|slice:":8"|upper }}</strong></p>
+    <dl class="confirmation-details"><div><dt>Data</dt><dd>{{ agendamento.inicio|date:"d/m/Y" }}</dd></div><div><dt>Horário</dt><dd>{{ agendamento.inicio|date:"H:i" }}</dd></div><div><dt>Serviço</dt><dd>{{ agendamento.servico.nome }}</dd></div><div><dt>Profissional</dt><dd>{{ agendamento.profissional.nome_exibicao }}</dd></div><div><dt>Valor</dt><dd>R$ {{ agendamento.preco_cobrado|floatformat:2 }}</dd></div><div><dt>Cliente</dt><dd>{{ agendamento.cliente.nome }}</dd></div></dl>
+    {% if pode_alterar %}<div class="manage-actions"><a class="btn btn-primary" href="{% url 'agendamento_publico_reagendar' barbearia.slug agendamento.token_publico %}">Reagendar</a><form method="post" action="{% url 'agendamento_publico_cancelar' barbearia.slug agendamento.token_publico %}" onsubmit="return confirm('Deseja realmente cancelar este horário?')">{% csrf_token %}<button class="btn btn-outline-danger" type="submit">Cancelar horário</button></form></div>
+    {% elif agendamento.status != 'CANCELADO' %}<p class="confirmation-note">O prazo para alterações on-line foi encerrado. Entre em contato diretamente com a barbearia.</p>{% endif %}
+    <a class="text-link manage-back" href="{% url 'agendamento_publico' barbearia.slug %}">Voltar para {{ barbearia.nome }}</a>
+</section></main></body></html>

@@ -1,0 +1,33 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}{{ titulo }} | BarberFlow{% endblock %}
+
+{% block content %}
+<div class="page-heading compact">
+    <div>
+        <p class="eyebrow">Cadastro</p>
+        <h1>{{ titulo }}</h1>
+    </div>
+</div>
+
+<section class="form-card">
+    {% if form.non_field_errors %}
+        <div class="form-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <form method="post" class="form-stack" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="field{% if field.field.widget.input_type == 'checkbox' %} field-checkbox{% endif %}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<small class="help-text">{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+            </div>
+        {% endfor %}
+        <div class="form-actions">
+            <a class="btn btn-secondary" href="{% url voltar_url %}">Cancelar</a>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

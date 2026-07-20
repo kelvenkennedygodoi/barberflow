@@ -1,0 +1,40 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Horário agendado | {{ barbearia.nome }}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="public-page">
+    <main class="confirmation-shell">
+        <section class="confirmation-card">
+            <span class="confirmation-icon" aria-hidden="true">✓</span>
+            <p class="eyebrow">Agendamento realizado</p>
+            <h1>Horário reservado!</h1>
+            <p>{{ agendamento.cliente.nome }}, seu pedido foi enviado para {{ barbearia.nome }}.</p>
+
+            <dl class="confirmation-details">
+                <div><dt>Código da reserva</dt><dd>{{ agendamento.token_publico|stringformat:"s"|slice:":8"|upper }}</dd></div>
+                <div><dt>Data</dt><dd>{{ agendamento.inicio|date:"d/m/Y" }}</dd></div>
+                <div><dt>Horário</dt><dd>{{ agendamento.inicio|date:"H:i" }}</dd></div>
+                <div><dt>Serviço</dt><dd>{{ agendamento.servico.nome }}</dd></div>
+                <div><dt>Barbeiro</dt><dd>{{ agendamento.profissional.nome_exibicao }}</dd></div>
+                <div><dt>Valor</dt><dd>R$ {{ agendamento.preco_cobrado|floatformat:2 }}</dd></div>
+                <div><dt>Situação</dt><dd>{{ agendamento.get_status_display }}</dd></div>
+            </dl>
+
+            {% if agendamento.cliente.aceita_notificacoes_whatsapp %}
+                <p class="confirmation-note">Você autorizou o envio da confirmação e dos lembretes pelo WhatsApp informado.</p>
+            {% else %}
+                <p class="confirmation-note">Guarde essas informações. A barbearia poderá entrar em contato para confirmar.</p>
+            {% endif %}
+            <p class="confirmation-note"><strong>Importante:</strong> salve o próximo link. Ele permite consultar, reagendar ou cancelar sua reserva com segurança.</p>
+            <a class="btn btn-primary btn-block" href="{% url 'agendamento_publico_gerenciar' barbearia.slug agendamento.token_publico %}">Consultar ou alterar reserva</a>
+            <a class="btn btn-secondary btn-block confirmation-secondary" href="{% url 'agendamento_publico' barbearia.slug %}">Fazer outro agendamento</a>
+        </section>
+    </main>
+</body>
+</html>

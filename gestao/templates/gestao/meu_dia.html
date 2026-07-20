@@ -1,0 +1,119 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Meu dia | BarberFlow{% endblock %}
+
+{% block content %}
+<div class="page-heading barber-day-heading">
+    <div>
+        <p class="eyebrow">Operação</p>
+        <h1>Meu dia</h1>
+        <p>{{ hoje|date:"l, d \d\e F"|capfirst }} · {{ user.nome_exibicao }}</p>
+    </div>
+    <a class="btn btn-secondary" href="{% url 'agenda_visual' %}">Ver agenda completa</a>
+</div>
+
+<section class="barber-summary" aria-label="Resumo do dia">
+    <article>
+        <span>Atendimentos</span>
+        <strong>{{ total_hoje }}</strong>
+    </article>
+    <article>
+        <span>Pendentes</span>
+        <strong>{{ total_pendentes }}</strong>
+    </article>
+    <article>
+        <span>Concluídos</span>
+        <strong>{{ total_concluidos }}</strong>
+    </article>
+    <article class="commission-summary">
+        <span>Minha comissão</span>
+        <strong>R$ {{ comissao_hoje|floatformat:2 }}</strong>
+    </article>
+</section>
+
+{% if proximo %}
+<section class="next-service{% if proximo.status == 'EM_ATENDIMENTO' %} in-progress{% endif %}">
+    <div class="next-service-time">
+        <span>{% if proximo.status == 'EM_ATENDIMENTO' %}Em atendimento{% else %}Próximo cliente{% endif %}</span>
+        <strong>{{ proximo.inicio|date:"H:i" }}</strong>
+    </div>
+    <div class="next-service-main">
+        <h2>{{ proximo.cliente.nome }}</h2>
+        <p>{{ proximo.servico.nome }} · {{ proximo.servico.duracao_minutos }} min</p>
+    </div>
+    <span class="badge badge-{{ proximo.status|lower }}">{{ proximo.get_status_display }}</span>
+</section>
+{% endif %}
+
+<section class="barber-agenda">
+    <div class="barber-agenda-heading">
+        <div>
+            <h2>Atendimentos de hoje</h2>
+            <p>Atualize cada etapa conforme o cliente avança no atendimento.</p>
+        </div>
+    </div>
+
+    <div class="barber-appointments">
+        {% for agendamento in agendamentos %}
+            <article class="barber-appointment{% if agendamento.pk == proximo.pk %} is-next{% endif %}{% if agendamento.status == 'CANCELADO' or agendamento.status == 'FALTOU' %} is-muted{% endif %}">
+                <time datetime="{{ agendamento.inicio|date:'c' }}">
+                    <strong>{{ agendamento.inicio|date:"H:i" }}</strong>
+                    <small>{{ agendamento.fim|date:"H:i" }}</small>
+                </time>
+                <div class="barber-appointment-info">
+                    <div class="barber-appointment-title">
+                        <div>
+                            <h3>{{ agendamento.cliente.nome }}</h3>
+                            <p>{{ agendamento.servico.nome }} · R$ {{ agendamento.preco_cobrado|floatformat:2 }}</p>
+                        </div>
+                        <span class="badge badge-{{ agendamento.status|lower }}">{{ agendamento.get_status_display }}</span>
+                    </div>
+                    <div class="barber-appointment-contact">
+                        {% if agendamento.cliente.telefone %}
+                            <a href="tel:{{ agendamento.cliente.telefone }}">{{ agendamento.cliente.telefone }}</a>
+                        {% else %}
+                            <span>Telefone não informado</span>
+                        {% endif %}
+                        {% if agendamento.observacoes %}<span>{{ agendamento.observacoes }}</span>{% endif %}
+                    </div>
+
+                    <div class="barber-actions">
+                        {% if agendamento.status == 'AGENDADO' %}
+                            <form method="post" action="{% url 'atendimento_confirmar_chegada' agendamento.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-primary" type="submit">Confirmar chegada</button>
+                            </form>
+                            <form method="post" action="{% url 'atendimento_registrar_falta' agendamento.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-danger" type="submit">Cliente faltou</button>
+                            </form>
+                        {% elif agendamento.status == 'CONFIRMADO' %}
+                            <form method="post" action="{% url 'atendimento_iniciar' agendamento.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-primary" type="submit">Iniciar atendimento</button>
+                            </form>
+                            <form method="post" action="{% url 'atendimento_registrar_falta' agendamento.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-danger" type="submit">Cliente faltou</button>
+                            </form>
+                        {% elif agendamento.status == 'EM_ATENDIMENTO' %}
+                            <a class="btn btn-success" href="{% url 'atendimento_concluir' agendamento.pk %}">Concluir e receber</a>
+                        {% elif agendamento.status == 'CONCLUIDO' %}
+                            <div class="service-result">
+                                <span>{{ agendamento.get_forma_pagamento_display|default:"Pagamento não informado" }}</span>
+                                <strong>Comissão: R$ {{ agendamento.comissao_valor|floatformat:2 }}</strong>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+        {% empty %}
+            <div class="barber-empty">
+                <span>✓</span>
+                <h2>Agenda livre hoje</h2>
+                <p>Você não possui atendimentos marcados para esta data.</p>
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

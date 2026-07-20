@@ -1,0 +1,81 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Concluir atendimento | BarberFlow{% endblock %}
+
+{% block content %}
+<a class="back-link" href="{% url 'meu_dia' %}">← Voltar para meu dia</a>
+
+<div class="page-heading compact">
+    <div>
+        <p class="eyebrow">Finalização</p>
+        <h1>Concluir atendimento</h1>
+        <p>Confira o valor recebido para registrar sua comissão.</p>
+    </div>
+</div>
+
+<div class="completion-layout">
+    <section class="completion-service-card">
+        <span class="badge badge-em_atendimento">Em atendimento</span>
+        <h2>{{ agendamento.cliente.nome }}</h2>
+        <p>{{ agendamento.servico.nome }}</p>
+        <dl>
+            <div>
+                <dt>Horário</dt>
+                <dd>{{ agendamento.inicio|date:"H:i" }}–{{ agendamento.fim|date:"H:i" }}</dd>
+            </div>
+            <div>
+                <dt>Valor previsto</dt>
+                <dd>R$ {{ agendamento.preco_cobrado|floatformat:2 }}</dd>
+            </div>
+            <div>
+                <dt>Sua comissão</dt>
+                <dd>{{ user.comissao_percentual|floatformat:2 }}%</dd>
+            </div>
+        </dl>
+    </section>
+
+    <section class="form-card completion-form-card">
+        {% if form.non_field_errors %}
+            <div class="form-errors">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <form method="post" class="form-stack" novalidate>
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+                </div>
+            {% endfor %}
+
+            <div class="commission-preview">
+                <span>Comissão estimada</span>
+                <strong id="commission-value">R$ {{ comissao_estimada|floatformat:2 }}</strong>
+                <small>Calculada sobre o valor final com sua comissão de {{ user.comissao_percentual|floatformat:2 }}%.</small>
+            </div>
+
+            <div class="form-actions">
+                <a class="btn btn-secondary" href="{% url 'meu_dia' %}">Cancelar</a>
+                <button class="btn btn-success" type="submit">Concluir atendimento</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<script>
+(() => {
+    const price = document.getElementById("id_preco_cobrado");
+    const output = document.getElementById("commission-value");
+    const percentage = Number("{{ user.comissao_percentual }}".replace(",", "."));
+    if (!price || !output) return;
+    const update = () => {
+        const value = Number(price.value.replace(",", ".")) || 0;
+        output.textContent = (value * percentage / 100).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        });
+    };
+    price.addEventListener("input", update);
+})();
+</script>
+{% endblock %}

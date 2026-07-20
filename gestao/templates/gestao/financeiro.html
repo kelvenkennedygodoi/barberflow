@@ -1,0 +1,188 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Financeiro | BarberFlow{% endblock %}
+
+{% block content %}
+<div class="page-heading financial-heading">
+    <div>
+        <p class="eyebrow">Gestão financeira</p>
+        <h1>Relatórios financeiros</h1>
+        <p>Acompanhe faturamento, recebimentos e comissões da equipe.</p>
+    </div>
+    <a class="btn btn-secondary" href="{% url 'financeiro_exportar' %}{% if query_exportacao %}?{{ query_exportacao }}{% endif %}">Exportar CSV</a>
+</div>
+
+<section class="financial-filters">
+    <form method="get" class="financial-filter-grid" novalidate>
+        {% for field in form %}
+            <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+            </div>
+        {% endfor %}
+        <div class="financial-filter-actions">
+            <button class="btn btn-primary" type="submit">Aplicar filtros</button>
+            <a class="text-link" href="{% url 'financeiro' %}">Limpar</a>
+        </div>
+    </form>
+</section>
+
+<section class="financial-metrics" aria-label="Resumo financeiro">
+    <article class="financial-metric revenue">
+        <span>Faturamento</span>
+        <strong>R$ {{ faturamento|floatformat:2 }}</strong>
+        <small>{{ atendimentos }} atendimento{{ atendimentos|pluralize }}</small>
+    </article>
+    <article class="financial-metric">
+        <span>Ticket médio</span>
+        <strong>R$ {{ ticket_medio|floatformat:2 }}</strong>
+        <small>Média por atendimento</small>
+    </article>
+    <article class="financial-metric commission">
+        <span>Comissões</span>
+        <strong>R$ {{ comissoes|floatformat:2 }}</strong>
+        <small>Total devido à equipe</small>
+    </article>
+    <article class="financial-metric net">
+        <span>Líquido após comissões</span>
+        <strong>R$ {{ liquido|floatformat:2 }}</strong>
+        <small>Antes de outras despesas</small>
+    </article>
+</section>
+
+<section class="panel financial-chart-panel">
+    <div class="panel-heading">
+        <div>
+            <h2>Faturamento por dia</h2>
+            <p>Evolução dos dias que tiveram atendimentos concluídos.</p>
+        </div>
+    </div>
+    {% if faturamento_diario %}
+        <div class="financial-chart-list">
+            {% for dia in faturamento_diario %}
+                <div class="financial-chart-row">
+                    <time datetime="{{ dia.dia|date:'Y-m-d' }}">{{ dia.dia|date:"d/m" }}</time>
+                    <div class="financial-chart-track">
+                        <span style="--value: {{ dia.percentual|stringformat:'s' }}%"></span>
+                    </div>
+                    <strong>R$ {{ dia.total|floatformat:2 }}</strong>
+                    <small>{{ dia.quantidade }} atend.</small>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-inline">
+            <p>Nenhum faturamento encontrado no período.</p>
+            <small>Conclua atendimentos ou altere os filtros para visualizar o relatório.</small>
+        </div>
+    {% endif %}
+</section>
+
+<div class="financial-breakdown-grid">
+    <section class="panel">
+        <div class="panel-heading">
+            <div>
+                <h2>Formas de pagamento</h2>
+                <p>Participação de cada meio no faturamento.</p>
+            </div>
+        </div>
+        {% if pagamentos %}
+            <div class="payment-breakdown">
+                {% for pagamento in pagamentos %}
+                    <article>
+                        <div class="payment-breakdown-title">
+                            <div>
+                                <strong>{{ pagamento.nome }}</strong>
+                                <small>{{ pagamento.quantidade }} atendimento{{ pagamento.quantidade|pluralize }}</small>
+                            </div>
+                            <div>
+                                <strong>R$ {{ pagamento.total|floatformat:2 }}</strong>
+                                <small>{{ pagamento.percentual|floatformat:1 }}%</small>
+                            </div>
+                        </div>
+                        <div class="payment-progress"><span style="--value: {{ pagamento.percentual|stringformat:'s' }}%"></span></div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-inline"><p>Nenhum pagamento no período.</p></div>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <div>
+                <h2>Comissões por barbeiro</h2>
+                <p>Produção, comissão calculada e valor da barbearia.</p>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Barbeiro</th>
+                        <th>Produção</th>
+                        <th>Comissão</th>
+                        <th>Líquido</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in comissoes_profissionais %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.nome }}</strong>
+                                <span class="table-detail">{{ item.atendimentos }} atend. · taxa efetiva {{ item.taxa_efetiva|floatformat:1 }}%</span>
+                            </td>
+                            <td>R$ {{ item.faturamento|floatformat:2 }}</td>
+                            <td><strong class="commission-value">R$ {{ item.comissao|floatformat:2 }}</strong></td>
+                            <td>R$ {{ item.liquido|floatformat:2 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td class="empty-state" colspan="4">Nenhuma comissão no período.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<section class="panel financial-movements">
+    <div class="panel-heading">
+        <div>
+            <h2>Atendimentos concluídos</h2>
+            <p>Os 50 registros mais recentes dentro dos filtros aplicados.</p>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Barbeiro</th>
+                    <th>Serviço</th>
+                    <th>Pagamento</th>
+                    <th>Faturamento</th>
+                    <th>Comissão</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for agendamento in agendamentos_recentes %}
+                    <tr>
+                        <td><strong>{{ agendamento.inicio|date:"d/m/Y" }}</strong><span class="table-detail">{{ agendamento.inicio|date:"H:i" }}</span></td>
+                        <td>{{ agendamento.cliente.nome }}</td>
+                        <td>{{ agendamento.profissional.nome_exibicao }}</td>
+                        <td>{{ agendamento.servico.nome }}</td>
+                        <td>{{ agendamento.get_forma_pagamento_display|default:"Não informado" }}</td>
+                        <td><strong>R$ {{ agendamento.preco_cobrado|floatformat:2 }}</strong></td>
+                        <td>R$ {{ agendamento.comissao_valor|floatformat:2 }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="empty-state" colspan="7">Nenhum atendimento concluído neste período.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Equipe e horários | BarberFlow{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">Configuração</p>
+        <h1>Equipe e horários</h1>
+        <p>Cadastre funcionários, controle acessos e configure a disponibilidade dos barbeiros.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'funcionario_criar' %}">Novo funcionário</a>
+</div>
+
+<section class="team-grid">
+    {% for profissional in profissionais %}
+        <article class="team-card{% if not profissional.is_active %} inactive{% endif %}">
+            <header>
+                <span class="team-avatar">{{ profissional.nome_exibicao|first|upper }}</span>
+                <div>
+                    <h2>{{ profissional.nome_exibicao }}</h2>
+                    <p>@{{ profissional.username }}</p>
+                </div>
+                {% if profissional.is_active %}
+                    <span class="badge badge-confirmado">Ativo</span>
+                {% else %}
+                    <span class="badge badge-cancelado">Inativo</span>
+                {% endif %}
+            </header>
+
+            <dl class="team-summary">
+                <div>
+                    <dt>Função</dt>
+                    <dd class="summary-text">{{ profissional.get_papel_display }}</dd>
+                </div>
+                <div>
+                    {% if profissional.papel == 'BARBEIRO' %}
+                        <dt>Comissão</dt>
+                        <dd>{{ profissional.comissao_percentual|floatformat:2 }}%</dd>
+                    {% else %}
+                        <dt>Acesso</dt>
+                        <dd class="summary-text">Atendimento</dd>
+                    {% endif %}
+                </div>
+            </dl>
+
+            {% if profissional.papel == 'BARBEIRO' %}
+                {% with proximo=profissional.bloqueios_futuros.0 %}
+                    {% if proximo %}
+                        <p class="team-next-block">
+                            <strong>Próxima indisponibilidade</strong>
+                            {{ proximo.inicio|date:"d/m/Y H:i" }} a {{ proximo.fim|date:"d/m/Y H:i" }}
+                        </p>
+                    {% else %}
+                        <p class="team-next-block muted">{{ profissional.horarios_ativos|length }} período{{ profissional.horarios_ativos|length|pluralize }} de trabalho configurado{{ profissional.horarios_ativos|length|pluralize }}.</p>
+                    {% endif %}
+                {% endwith %}
+            {% else %}
+                <p class="team-next-block muted">Recepcionistas administram clientes, serviços e agendamentos.</p>
+            {% endif %}
+
+            <div class="team-actions">
+                <a class="btn btn-secondary" href="{% url 'funcionario_editar' profissional.pk %}">Editar dados</a>
+                {% if profissional.papel == 'BARBEIRO' %}
+                    <a class="btn btn-primary" href="{% url 'disponibilidade_profissional' profissional.pk %}">Horários</a>
+                {% endif %}
+                <form method="post" action="{% url 'funcionario_alterar_status' profissional.pk %}">
+                    {% csrf_token %}
+                    <button class="btn {% if profissional.is_active %}btn-outline-danger{% else %}btn-secondary{% endif %}" type="submit">
+                        {% if profissional.is_active %}Desativar{% else %}Reativar{% endif %}
+                    </button>
+                </form>
+            </div>
+        </article>
+    {% empty %}
+        <article class="agenda-empty team-empty">
+            <h2>Nenhum barbeiro cadastrado</h2>
+            <p>Cadastre o primeiro barbeiro ou recepcionista.</p>
+            <a class="btn btn-primary" href="{% url 'funcionario_criar' %}">Cadastrar funcionário</a>
+        </article>
+    {% endfor %}
+</section>
+{% endblock %}
