@@ -17,7 +17,8 @@ services:
   web:
     build: .
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env
     environment:
       DEBUG: "False"
       POSTGRES_DB: barberflow
@@ -30,18 +31,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8000:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; r=urllib.request.Request('http://localhost:8000/saude/', headers={'X-Forwarded-Proto':'https'}); urllib.request.urlopen(r)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/saude/')"
+        ]
       interval: 15s
       timeout: 5s
       retries: 10
+      start_period: 30s
 
   whatsapp_worker:
     build: .
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env
     environment:
       DEBUG: "False"
       POSTGRES_DB: barberflow
@@ -54,7 +61,12 @@ services:
     depends_on:
       web:
         condition: service_healthy
-    command: ["sh", "-c", "while true; do python manage.py processar_notificacoes_whatsapp --limite 100; sleep 300; done"]
+    command:
+      [
+        "sh",
+        "-c",
+        "while true; do python manage.py processar_notificacoes_whatsapp --limite 100; sleep 300; done"
+      ]
 
 volumes:
   postgres_data:
