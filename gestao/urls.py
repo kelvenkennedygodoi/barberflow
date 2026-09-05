@@ -4,6 +4,7 @@ from . import views
 
 
 urlpatterns = [
+    path("assinatura/", views.assinatura_status, name="assinatura_status"),
     path(
         "agendar/<slug:slug>/",
         views.agendamento_publico,

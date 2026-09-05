@@ -11,11 +11,13 @@ from django.utils import timezone
 
 from .models import (
     Agendamento,
+    Assinatura,
     Barbearia,
     BloqueioAgenda,
     Cliente,
     HorarioTrabalho,
     NotificacaoWhatsApp,
+    Plano,
     Servico,
     Usuario,
 )
@@ -1273,3 +1275,102 @@ class InfraestruturaProducaoTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+
+class AssinaturaSaaSTests(BaseTestCase):
+    def test_nova_barbearia_recebe_sete_dias_de_teste(self):
+        antes = timezone.now() + timedelta(days=6, hours=23, minutes=59)
+        barbearia = Barbearia.objects.create(nome="Nova Barbearia", slug="nova")
+        depois = timezone.now() + timedelta(days=7, minutes=1)
+
+        self.assertGreaterEqual(barbearia.assinatura.fim_teste, antes)
+        self.assertLessEqual(barbearia.assinatura.fim_teste, depois)
+        self.assertEqual(barbearia.assinatura.status, Assinatura.Status.TESTE)
+        self.assertTrue(barbearia.assinatura.acesso_liberado())
+
+    def test_teste_expirado_bloqueia_painel_operacional(self):
+        assinatura = self.barbearia_a.assinatura
+        assinatura.fim_teste = timezone.now() - timedelta(seconds=1)
+        assinatura.save(update_fields=["fim_teste", "atualizada_em"])
+        self.client.force_login(self.gestor_a)
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertRedirects(response, reverse("assinatura_status"))
+        assinatura.refresh_from_db()
+        self.assertEqual(assinatura.status, Assinatura.Status.SUSPENSA)
+
+    def test_tela_de_assinatura_continua_disponivel_quando_suspensa(self):
+        assinatura = self.barbearia_a.assinatura
+        assinatura.status = Assinatura.Status.SUSPENSA
+        assinatura.save(update_fields=["status", "atualizada_em"])
+        self.client.force_login(self.gestor_a)
+
+        response = self.client.get(reverse("assinatura_status"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Regularize sua assinatura")
+
+    def test_teste_expirado_suspende_novas_reservas_publicas(self):
+        assinatura = self.barbearia_a.assinatura
+        assinatura.fim_teste = timezone.now() - timedelta(seconds=1)
+        assinatura.save(update_fields=["fim_teste", "atualizada_em"])
+
+        pagina = self.client.get(
+            reverse("agendamento_publico", args=[self.barbearia_a.slug])
+        )
+        horarios = self.client.get(
+            reverse("horarios_disponiveis_publico", args=[self.barbearia_a.slug])
+        )
+
+        self.assertEqual(pagina.status_code, 403)
+        self.assertContains(
+            pagina,
+            "Agendamento temporariamente indisponível",
+            status_code=403,
+        )
+        self.assertEqual(horarios.status_code, 403)
+        self.assertEqual(
+            horarios.json(),
+            {"erro": "Agendamento temporariamente indisponível."},
+        )
+
+    def test_assinatura_ausente_bloqueia_sem_conceder_novo_teste(self):
+        self.barbearia_a.assinatura.delete()
+
+        response = self.client.get(
+            reverse("agendamento_publico", args=[self.barbearia_a.slug])
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            Assinatura.objects.filter(barbearia=self.barbearia_a).exists()
+        )
+
+    def test_assinatura_paga_com_periodo_vigente_libera_acesso(self):
+        plano = Plano.objects.create(
+            nome="Essencial",
+            codigo="essencial",
+            valor_mensal=Decimal("49.90"),
+        )
+        assinatura = self.barbearia_a.assinatura
+        assinatura.plano = plano
+        assinatura.status = Assinatura.Status.ATIVA
+        assinatura.fim_periodo_atual = timezone.now() + timedelta(days=30)
+        assinatura.save()
+        self.client.force_login(self.gestor_a)
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_conta_isenta_permanece_liberada_sem_vencimento(self):
+        assinatura = self.barbearia_a.assinatura
+        assinatura.status = Assinatura.Status.ISENTA
+        assinatura.fim_teste = timezone.now() - timedelta(days=30)
+        assinatura.save()
+        self.client.force_login(self.gestor_a)
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertEqual(response.status_code, 200)

@@ -31,7 +31,9 @@
         <div class="app-shell">
             <nav class="sidebar" aria-label="Navegação principal">
                 <p class="sidebar-label">{{ user.barbearia.nome }}</p>
-                {% if user.papel == 'BARBEIRO' and not user.is_superuser %}
+                {% if assinatura_sem_acesso %}
+                    <a href="{% url 'assinatura_status' %}">Regularizar acesso</a>
+                {% elif user.papel == 'BARBEIRO' and not user.is_superuser %}
                     <a href="{% url 'meu_dia' %}">Meu dia</a>
                     <a href="{% url 'agenda_visual' %}">Minha agenda</a>
                 {% else %}
@@ -42,6 +44,7 @@
                     <a href="{% url 'servico_lista' %}">Serviços</a>
                 {% endif %}
                 {% if user.papel == 'PROPRIETARIO' or user.is_superuser %}
+                    <a href="{% url 'assinatura_status' %}">Plano e assinatura</a>
                     <a href="{% url 'financeiro' %}">Financeiro</a>
                     <a href="{% url 'equipe_lista' %}">Equipe e horários</a>
                     <a href="{% url 'configuracao_publica' %}">Página de agendamento</a>

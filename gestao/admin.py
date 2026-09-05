@@ -9,8 +9,25 @@ from .models import (
     HorarioTrabalho,
     Servico,
     NotificacaoWhatsApp,
+    Assinatura,
+    Plano,
     Usuario,
 )
+
+
+@admin.register(Plano)
+class PlanoAdmin(admin.ModelAdmin):
+    list_display = ("nome", "codigo", "valor_mensal", "limite_profissionais", "ativo")
+    list_filter = ("ativo",)
+    search_fields = ("nome", "codigo")
+
+
+@admin.register(Assinatura)
+class AssinaturaAdmin(admin.ModelAdmin):
+    list_display = ("barbearia", "plano", "status", "fim_teste", "fim_periodo_atual")
+    list_filter = ("status", "plano")
+    search_fields = ("barbearia__nome", "barbearia__email", "identificador_externo")
+    autocomplete_fields = ("barbearia", "plano")
 
 
 @admin.register(Barbearia)
