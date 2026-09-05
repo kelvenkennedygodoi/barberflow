@@ -1,0 +1,17 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Agendamento indisponível | {{ barbearia.nome }}{% endblock %}
+
+{% block auth_content %}
+<div class="public-page">
+    <main class="public-main narrow">
+        <section class="confirmation-card public-unavailable-card">
+            <span class="subscription-icon" aria-hidden="true">BF</span>
+            <p class="eyebrow">{{ barbearia.nome }}</p>
+            <h1>Agendamento temporariamente indisponível</h1>
+            <p>Entre em contato diretamente com o estabelecimento para consultar horários.</p>
+            {% if barbearia.telefone %}<p><strong>{{ barbearia.telefone }}</strong></p>{% endif %}
+        </section>
+    </main>
+</div>
+{% endblock %}

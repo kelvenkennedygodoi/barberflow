@@ -1,0 +1,45 @@
+{% extends "gestao/base.html" %}
+
+{% block title %}Plano e assinatura | BarberFlow{% endblock %}
+
+{% block content %}
+<section class="subscription-page">
+    <div class="subscription-card{% if assinatura_sem_acesso %} subscription-card-blocked{% endif %}">
+        <span class="subscription-icon" aria-hidden="true">BF</span>
+        {% if assinatura_sem_acesso %}
+            <p class="eyebrow">Acesso suspenso</p>
+            <h1>Regularize sua assinatura</h1>
+            <p>O período gratuito terminou ou existe uma pendência na assinatura. Seus dados continuam guardados e o acesso será restabelecido depois da confirmação do pagamento.</p>
+        {% elif assinatura.status == 'TESTE' %}
+            <p class="eyebrow">Teste gratuito</p>
+            <h1>{{ dias_restantes }} dia{{ dias_restantes|pluralize }} restante{{ dias_restantes|pluralize }}</h1>
+            <p>Você está usando todos os recursos disponíveis durante o período de teste do BarberFlow.</p>
+        {% else %}
+            <p class="eyebrow">Assinatura</p>
+            <h1>Acesso liberado</h1>
+            <p>Sua barbearia está ativa e o link público está recebendo agendamentos normalmente.</p>
+        {% endif %}
+
+        <dl class="subscription-details">
+            <div><dt>Barbearia</dt><dd>{{ user.barbearia.nome }}</dd></div>
+            <div><dt>Situação</dt><dd>{{ assinatura.get_status_display|default:"Acesso não configurado" }}</dd></div>
+            <div><dt>Plano</dt><dd>{{ assinatura.plano.nome|default:"Ainda não escolhido" }}</dd></div>
+            {% if assinatura and assinatura.status == 'TESTE' %}
+                <div><dt>Teste até</dt><dd>{{ assinatura.fim_teste|date:"d/m/Y à\s H:i" }}</dd></div>
+            {% elif assinatura and assinatura.fim_periodo_atual %}
+                <div><dt>Período atual</dt><dd>{{ assinatura.fim_periodo_atual|date:"d/m/Y" }}</dd></div>
+            {% endif %}
+        </dl>
+
+        {% if assinatura_sem_acesso %}
+            {% if eh_proprietario %}
+                <div class="subscription-notice">A contratação online será adicionada no próximo módulo. Nesta etapa, a liberação pode ser administrada com segurança pelo painel do BarberFlow.</div>
+            {% else %}
+                <div class="subscription-notice">Peça ao proprietário da barbearia para regularizar o acesso.</div>
+            {% endif %}
+        {% else %}
+            <a class="btn btn-primary btn-large" href="{% url 'dashboard' %}">Voltar ao painel</a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

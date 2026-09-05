@@ -19,7 +19,9 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8085:8000"
+      # Produção mantém 8085. Em previews, defina WEB_PORT com uma porta livre
+      # (por exemplo, 8086) para não disputar a porta do ambiente principal.
+      - "${WEB_PORT:-8085}:8000"
 
     env_file:
       - .env

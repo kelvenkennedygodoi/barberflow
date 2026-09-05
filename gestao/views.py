@@ -38,6 +38,7 @@ from .mixins import (
 )
 from .models import (
     Agendamento,
+    Assinatura,
     Barbearia,
     BloqueioAgenda,
     Cliente,
@@ -45,6 +46,7 @@ from .models import (
     Servico,
     Usuario,
 )
+from .assinaturas import obter_assinatura
 from .services import horarios_disponiveis
 from .whatsapp import cancelar_notificacoes, sincronizar_notificacoes
 
@@ -58,6 +60,23 @@ NOMES_DIAS_SEMANA = (
     "Sábado",
     "Domingo",
 )
+
+
+@login_required
+def assinatura_status(request):
+    if not request.user.barbearia_id:
+        raise PermissionDenied("Seu usuário não está vinculado a uma barbearia.")
+    assinatura = obter_assinatura(request.user.barbearia)
+    return render(
+        request,
+        "gestao/assinatura_status.html",
+        {
+            "assinatura": assinatura,
+            "assinatura_sem_acesso": not assinatura or not assinatura.acesso_liberado(),
+            "dias_restantes": assinatura.dias_restantes_teste() if assinatura else 0,
+            "eh_proprietario": request.user.papel == Usuario.Papel.PROPRIETARIO,
+        },
+    )
 
 
 def _limite_publico_excedido(request, acao, limite, periodo):

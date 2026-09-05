@@ -15,6 +15,11 @@ def normalizar_telefone(valor):
     return "".join(caractere for caractere in (valor or "") if caractere.isdigit())
 
 
+def fim_teste_padrao():
+    """Prazo inicial de acesso gratuito de uma nova barbearia."""
+    return timezone.now() + timedelta(days=7)
+
+
 class Barbearia(models.Model):
     nome = models.CharField(max_length=120)
     slug = models.SlugField(max_length=140, unique=True)
@@ -42,6 +47,109 @@ class Barbearia(models.Model):
 
     def __str__(self):
         return self.nome
+
+
+class Plano(models.Model):
+    nome = models.CharField(max_length=80)
+    codigo = models.SlugField(max_length=60, unique=True)
+    descricao = models.CharField(max_length=180, blank=True)
+    valor_mensal = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+    )
+    limite_profissionais = models.PositiveSmallIntegerField(default=1)
+    ativo = models.BooleanField(default=True)
+    ordem = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["ordem", "valor_mensal", "nome"]
+        verbose_name = "plano"
+        verbose_name_plural = "planos"
+
+    def __str__(self):
+        return self.nome
+
+
+class Assinatura(models.Model):
+    class Status(models.TextChoices):
+        TESTE = "TESTE", "Período de teste"
+        ATIVA = "ATIVA", "Ativa"
+        INADIMPLENTE = "INADIMPLENTE", "Inadimplente"
+        SUSPENSA = "SUSPENSA", "Suspensa"
+        CANCELADA = "CANCELADA", "Cancelada"
+        ISENTA = "ISENTA", "Liberada manualmente"
+
+    barbearia = models.OneToOneField(
+        Barbearia,
+        on_delete=models.CASCADE,
+        related_name="assinatura",
+    )
+    plano = models.ForeignKey(
+        Plano,
+        on_delete=models.PROTECT,
+        related_name="assinaturas",
+        null=True,
+        blank=True,
+    )
+    status = models.CharField(
+        max_length=15,
+        choices=Status.choices,
+        default=Status.TESTE,
+    )
+    inicio_teste = models.DateTimeField(default=timezone.now)
+    fim_teste = models.DateTimeField(default=fim_teste_padrao)
+    inicio_assinatura = models.DateTimeField(null=True, blank=True)
+    fim_periodo_atual = models.DateTimeField(null=True, blank=True)
+    suspensa_em = models.DateTimeField(null=True, blank=True)
+    cancelada_em = models.DateTimeField(null=True, blank=True)
+    gateway = models.CharField(max_length=30, blank=True)
+    identificador_externo = models.CharField(max_length=160, blank=True)
+    criada_em = models.DateTimeField(auto_now_add=True)
+    atualizada_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-criada_em"]
+        verbose_name = "assinatura"
+        verbose_name_plural = "assinaturas"
+        indexes = [models.Index(fields=["status", "fim_teste"])]
+
+    def __str__(self):
+        return f"{self.barbearia} — {self.get_status_display()}"
+
+    def acesso_liberado(self, agora=None):
+        agora = agora or timezone.now()
+        if self.status == self.Status.ISENTA:
+            return True
+        if self.status == self.Status.TESTE:
+            return agora < self.fim_teste
+        if self.status == self.Status.ATIVA:
+            return bool(self.fim_periodo_atual and agora < self.fim_periodo_atual)
+        if self.status == self.Status.CANCELADA:
+            return bool(self.fim_periodo_atual and agora < self.fim_periodo_atual)
+        return False
+
+    def dias_restantes_teste(self, agora=None):
+        if self.status != self.Status.TESTE:
+            return 0
+        agora = agora or timezone.now()
+        segundos = max(0, (self.fim_teste - agora).total_seconds())
+        return int((segundos + 86399) // 86400)
+
+    def sincronizar_expiracao(self, agora=None):
+        agora = agora or timezone.now()
+        expirou_teste = self.status == self.Status.TESTE and agora >= self.fim_teste
+        expirou_periodo = (
+            self.status in {self.Status.ATIVA, self.Status.CANCELADA}
+            and self.fim_periodo_atual
+            and agora >= self.fim_periodo_atual
+        )
+        if expirou_teste or expirou_periodo:
+            self.status = self.Status.SUSPENSA
+            self.suspensa_em = self.suspensa_em or agora
+            self.save(update_fields=["status", "suspensa_em", "atualizada_em"])
+        return self.status
 
 
 class Usuario(AbstractUser):
